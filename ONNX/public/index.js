@@ -1,5 +1,3 @@
-//const onnx = require("../node_modules/onnxruntime-web");
-//import { InferenceSession } from "onnxruntime-node";
 var start_time;
 var elapsed_time;
 function download(content, fileName, contentType) {
@@ -29,7 +27,13 @@ async function loadModel() {
     enableProfiling: true
   };
   session = await ort.InferenceSession.create("./yolov4.onnx",sessionOptions);
-
+  // const session = await ort.InferenceSession.create(
+  //   "./yolov4.onnx",
+  //   {
+  //     executionProviders: ["wasm"],
+  //   }
+  // );
+ // await session.loadModel("./yolov4.onnx");
   console.log("model loaded!")
   console.log(session)
   await imgSet();
@@ -44,28 +48,27 @@ async function imgSet() {
 
 async function runExample() {
     // Load image.
-    var img = document.getElementById("image_url")
+    // Load image.
+    // var img = document.getElementById("image_url")
     
-    const imgs = new Image();
-    imgs.onload = function() {
-      console.log(this.width + 'x' + this.height);
-      imgs.width = this.width;
-      imgs.height = this.height;
-      //let mat = cv.imread(imgElement);
-    }
-    imgs.src = img.value;
-    console.log(imgs.width)
-    const imageLoader = new ImageLoader(imgs.width,imgs.height);
+    // const imgs = new Image();
+    // imgs.onload = function() {
+    //   console.log(this.width + 'x' + this.height);
+    //   imgs.width = this.width;
+    //   imgs.height = this.height;
+    //   //let mat = cv.imread(imgElement);
+    // }
+    // imgs.src = img.value;
+    // console.log(imgs.width)
+    const imageLoader = new ImageLoader(imageSize, imageSize);
     const imageData = await imageLoader.getImageData(document.getElementById("image_url").value);
-   
-    console.log(imageData)
     // Preprocess the image data to match input dimension requirement, which is 1*3*224*224.
     const width = imageSize;
     const height = imageSize;
 
     start_time = performance.now();
-    const preprocessedData = preProcess(imageData, width, height, imgs.height, imgs.width);
-    //console.log([1, width, height, 3])
+    const preprocessedData = preprocess(imageData.data, width, height);
+    console.log([1, width, height, 3])
 
     const inputTensor = new ort.Tensor('float32', preprocessedData,  [1, width, height, 3]);
 
@@ -80,96 +83,36 @@ async function runExample() {
     //const outputData = outputMap.values().next().value.data;
     console.log(result)
     console.log(result[output])
-    //onDownload(result)
+    onDownload(result)
     let json = JSON.stringify(result);
     console.log(json)
-    //const outputData = result[output].data
+    const outputData = result[output].data
     // Render the output result in html.
-    //printMatches(outputData);
+    printMatches(outputData);
   }
 
   /**
    * Preprocess raw image data to match Resnet50 requirement.
    */
-  function preProcess(image, width, height, real_height, real_width) {
-    const data = image.data
-    const scale = Math.min(width/real_width, height/real_height);
-    log(scale);
-    const new_witdth = Math.floor(scale*real_width);
-    const new_height = Math.floor(scale*real_height);
-    console.log(new_witdth,new_height)
-    console.log(image);
+  function preprocess(data, width, height) {
+    // const scale = Math.min(width/real_width, height/real_height);
+    // log(scale);
+    // const new_witdth = Math.floor(scale*real_width);
+    // const new_height = Math.floor(scale*real_height);
+    // console.log(new_witdth,new_height)
+    // console.log(image);
     //const image_resized = ndarray(new Float32Array(data), [new_witdth, new_height, 4]);
     //Creating output
     const dataFromImage = ndarray(new Float32Array(data), [width, height, 4]);
     const dataProcessed = ndarray(new Float32Array(width * height * 3), [1, height, width, 3]);
 
     ndarray.ops.assigns(dataProcessed, 128.0)
-    //ndarray.ops.divseq(dataFromImage, 128.0);
     
-    //Resize
+    //Alinear
     ndarray.ops.assign(dataProcessed.pick(0, null, null, 0), dataFromImage.pick(null, null, 2));
     ndarray.ops.assign(dataProcessed.pick(0, null, null, 1), dataFromImage.pick(null, null, 1));
     ndarray.ops.assign(dataProcessed.pick(0, null, null, 2), dataFromImage.pick(null, null, 0));
 
     ndarray.ops.divseq(dataProcessed, 255.0);
     return dataProcessed.data;
-  }
-  /**
-   * Utility function to post-process Resnet50 output. Find top k ImageNet classes with highest probability.
-   */
-  function imagenetClassesTopK(classProbabilities, k) {
-    if (!k) { k = 5; }
-    const probs = Array.from(classProbabilities);
-    const probsIndices = probs.map(
-      function (prob, index) {
-        return [prob, index];
-      }
-    );
-    const sorted = probsIndices.sort(
-      function (a, b) {
-        if (a[0] < b[0]) {
-          return -1;
-        }
-        if (a[0] > b[0]) {
-          return 1;
-        }
-        return 0;
-      }
-    ).reverse();
-    const topK = sorted.slice(0, k).map(function (probIndex) {
-      const iClass = imagenetClasses[probIndex[1]];
-      return {
-        id: iClass[0],
-        index: parseInt(probIndex[1], 10),
-        name: iClass[1].replace(/_/g, ' '),
-        probability: probIndex[0]
-      };
-    });
-    return topK;
-  }
-
-  /**
-   * Render Resnet50 output to Html.
-   */
-  function printMatches(data) {
-    let outputClasses = [];
-    if (!data || data.length === 0) {
-      const empty = [];
-      for (let i = 0; i < 5; i++) {
-        empty.push({ name: '-', probability: 0, index: 0 });
-      }
-      outputClasses = empty;
-    } else {
-      outputClasses = imagenetClassesTopK(data, 5);
-    }
-    const predictions = document.getElementById('predictions');
-    predictions.innerHTML = '';
-    const results = [];
-    for (let i of [0, 1, 2, 3, 4]) {
-      results.push(`${outputClasses[i].name}: ${Math.round(100 * outputClasses[i].probability)}%`);
-    }
-    elapsed_time = performance.now() - start_time;
-    results.push(`Time taken: ${elapsed_time.toFixed(2)}ms`);
-    predictions.innerHTML = results.join('<br/>');
   }

@@ -223,7 +223,7 @@ def main():
 
     print("Mostrando imagen 1")
     image = Image.fromarray(image)
-    image.save("foo.png")
+    image.save("foo2.png")
     print("Mostrando imagen 2")
     
     #imshow(np.asarray(image))
