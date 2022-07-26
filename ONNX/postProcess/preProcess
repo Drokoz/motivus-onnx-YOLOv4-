@@ -1,0 +1,32 @@
+def image_preprocess(image, target_size, gt_boxes=None):
+
+    ih, iw = target_size #LISTO
+    h, w, _ = image.shape #LISTO
+
+    scale = min(iw/w, ih/h) #LISTO
+    nw, nh = int(scale * w), int(scale * h) #LISTO
+    image_resized = cv2.resize(image, (nw, nh)) #LISTO
+
+    image_padded = np.full(shape=[ih, iw, 3], fill_value=128.0) #LISTO
+    dw, dh = (iw - nw) // 2, (ih-nh) // 2 #LISTO
+    image_padded[dh:nh+dh, dw:nw+dw, :] = image_resized
+    image_padded = image_padded / 255. #LISTO
+
+    if gt_boxes is None:
+        return image_padded
+
+function preprocessYOLO(data, width, height) {
+    const dataFromImage = ndarray(new Float32Array(data), [width, height, 4]);
+    const dataProcessed = ndarray(new Float32Array(width * height * 3), [1, height, width, 3]);
+
+    ndarray.ops.assigns(dataProcessed, 128.0)
+    //ndarray.ops.divseq(dataFromImage, 128.0);
+    
+    //Resize
+    ndarray.ops.assign(dataProcessed.pick(0, null, null, 0), dataFromImage.pick(null, null, 2));
+    ndarray.ops.assign(dataProcessed.pick(0, null, null, 1), dataFromImage.pick(null, null, 1));
+    ndarray.ops.assign(dataProcessed.pick(0, null, null, 2), dataFromImage.pick(null, null, 0));
+
+    ndarray.ops.divseq(dataProcessed, 255.0);
+    return dataProcessed.data;
+  }

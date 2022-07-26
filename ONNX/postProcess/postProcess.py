@@ -1,12 +1,6 @@
 import cv2
 import numpy as np
-from onnx import numpy_helper
-import onnx
-import os
 from PIL import Image
-from matplotlib.pyplot import imshow
-from matplotlib import pyplot as plt
-import onnxruntime as rt
 from scipy import special
 import colorsys
 import random
@@ -178,8 +172,9 @@ def draw_bbox(image, bboxes, classes=read_class_names("coco.names"), show_label=
             bbox_mess = '%s: %.2f' % (classes[class_ind], score)
             t_size = cv2.getTextSize(bbox_mess, 0, fontScale, thickness=bbox_thick//2)[0]
             cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)
-
-            cv2.putText(image, bbox_mess, (c1[0], c1[1]-2), cv2.FONT_HERSHEY_SIMPLEX,
+            print("printing c")
+            print(c1)
+            cv2.putText(image, bbox_mess, (c1[0], c1[1]+20), cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale, (0, 0, 0), bbox_thick//2, lineType=cv2.LINE_AA)
 
     return image
@@ -194,11 +189,11 @@ def reshape(array, shapes):
     return array
 
 def main():
-    f = open(r"./output_bus.json")
+    f = open(r"./output.json")
     data = json.load(f)
     input_size = 416
 
-    original_image = cv2.imread("bus_cars.jpg")
+    original_image = cv2.imread("pelea.jpg")
     original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
     original_image_size = original_image.shape[:2]
     # Convert object to a list
@@ -223,7 +218,7 @@ def main():
 
     print("Mostrando imagen 1")
     image = Image.fromarray(image)
-    image.save("foo2.png")
+    image.save("resize3.png")
     print("Mostrando imagen 2")
     
     #imshow(np.asarray(image))
