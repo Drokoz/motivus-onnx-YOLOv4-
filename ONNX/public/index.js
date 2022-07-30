@@ -1,5 +1,3 @@
-//const onnx = require("../node_modules/onnxruntime-web");
-//import { InferenceSession } from "onnxruntime-node";
 var start_time;
 var elapsed_time;
 
@@ -12,10 +10,10 @@ function download(content, fileName, contentType) {
   a.click();
  }
  
- //Function to jsonfy output and download
- function onDownload(jsonData){
-  download(JSON.stringify(jsonData), "output.json", "text/plain");
- }
+//Function to jsonfy output and download
+function onDownload(jsonData){
+download(JSON.stringify(jsonData), "output.json", "text/plain");
+}
 
 // Create an ONNX inference session with WebGL backend.
 // Can be 'cpu', 'wasm' or 'webgl
@@ -61,6 +59,7 @@ async function runExample() {
     const height = imageSize;
 
     start_time = performance.now();
+    //debugSlice()
     const preprocessedData = preprocessYOLO(imageData.data, width, height, img);
     //console.log([1, width, height, 3])
 
@@ -83,11 +82,28 @@ async function runExample() {
     
   }
 
-  /**
-   * Preprocess raw image data to match YoloV4 requirement.
-   */
-  
-  function preprocessYOLO(data, width, height, img) {
+/**
+ * Preprocess raw image data to match YoloV4 requirement.
+ */
+function debugSlice(){
+  const imageResized = ndarray(new Float32Array(5*10*4), [5,10, 4]);
+  ndarray.ops.assigns(imageResized, 1);
+  const imagePadded = ndarray(new Float32Array(10 * 10 * 3), [10, 10, 3]);
+  ndarray.ops.assigns(imagePadded, 0);
+  const dHeight = 2;
+  const dWidth = 0;
+  const newWidth = 10;
+  const newHeight = 5;
+  console.log(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null).shape + " , " + imageResized.hi(null, null,3).shape);
+  console.log(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null));
+  console.log(imageResized.hi(null, null,3));
+
+  ndarray.ops.assign(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null), imageResized.hi(null, null,3));
+
+  console.log(imagePadded);
+
+}
+function preprocessYOLO(data, width, height, img) {
 
     //width and height = iw, ih
 
@@ -117,29 +133,10 @@ async function runExample() {
     
     const dWidth = Math.floor((width-newWidth)/2);
     const dHeight = Math.floor((height-newHeight)/2);
-
-  
-    console.log("Test dims");
-    console.log(imagePadded.hi(dHeight+newHeight, dWidth+newWidth ,0).lo(dHeight , dWidth, 0).shape + " - " + imageResized.hi(null, null ,2).lo(null , null, 2).shape);
     
-    //What i thing is right but it doesnt work
-    
-    //ndarray.ops.assign(imagePadded.hi(dWidth+newWidth, dHeight+newHeight,null).lo(dWidth, dHeight,null), imageResized);
-    
-    // //Aling test 1
-    
-    // ndarray.ops.assign(imagePadded.hi(0, dHeight+newHeight, dWidth+newWidth ,0).lo(0, dHeight , dWidth, 0), imageResized.hi(null, null, null ,2).lo(null, null , null, 2));
-    // ndarray.ops.assign(imagePadded.hi(0, dHeight+newHeight, dWidth+newWidth ,1).lo(0, dHeight , dWidth, 1), imageResized.hi(null, null, null ,1).lo(null, null , null, 1));
-    // ndarray.ops.assign(imagePadded.hi(0, dHeight+newHeight, dWidth+newWidth ,2).lo(0, dHeight , dWidth, 2), imageResized.hi(null, null, null ,0).lo(null, null , null, 0));
-    
-    //Aling test 2
-    
-    ndarray.ops.assign(imagePadded.hi(dHeight+newHeight, dWidth+newWidth ,0).lo(dHeight , dWidth, 0), imageResized.hi(null, null ,2).lo(null , null, 2));
-    ndarray.ops.assign(imagePadded.hi(dHeight+newHeight, dWidth+newWidth ,1).lo(dHeight , dWidth, 1), imageResized.hi(null, null ,1).lo(null , null, 1));
-    ndarray.ops.assign(imagePadded.hi(dHeight+newHeight, dWidth+newWidth ,2).lo(dHeight , dWidth, 2), imageResized.hi(null, null ,0).lo(null , null, 0));
-    
+    ndarray.ops.assign(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null), imageResized.hi(null, null,3));
 
     ndarray.ops.divseq(imagePadded, 255.0);
+
     return imagePadded.data;
   }
- 

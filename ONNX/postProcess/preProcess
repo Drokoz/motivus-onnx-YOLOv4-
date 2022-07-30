@@ -19,14 +19,15 @@ function preprocessYOLO(data, width, height) {
     const dataFromImage = ndarray(new Float32Array(data), [width, height, 4]);
     const dataProcessed = ndarray(new Float32Array(width * height * 3), [1, height, width, 3]);
 
-    ndarray.ops.assigns(dataProcessed, 128.0)
+    ndarray.ops.assigns(dataProcessed, 128.0);
     //ndarray.ops.divseq(dataFromImage, 128.0);
     
+    
     //Resize
-    ndarray.ops.assign(dataProcessed.pick(0, null, null, 0), dataFromImage.pick(null, null, 2));
-    ndarray.ops.assign(dataProcessed.pick(0, null, null, 1), dataFromImage.pick(null, null, 1));
-    ndarray.ops.assign(dataProcessed.pick(0, null, null, 2), dataFromImage.pick(null, null, 0));
+    // ndarray.ops.assign(dataProcessed.pick(0, null, null, 0), dataFromImage.pick(null, null, 2));
+    // ndarray.ops.assign(dataProcessed.pick(0, null, null, 1), dataFromImage.pick(null, null, 1));
+    // ndarray.ops.assign(dataProcessed.pick(0, null, null, 2), dataFromImage.pick(null, null, 0));
 
-    ndarray.ops.divseq(dataProcessed, 255.0);
+    
     return dataProcessed.data;
   }
