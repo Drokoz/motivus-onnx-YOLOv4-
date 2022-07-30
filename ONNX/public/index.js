@@ -1,5 +1,3 @@
-//const onnx = require("../node_modules/onnxruntime-web");
-//import { InferenceSession } from "onnxruntime-node";
 var start_time;
 var elapsed_time;
 
@@ -12,10 +10,10 @@ function download(content, fileName, contentType) {
   a.click();
  }
  
- //Function to jsonfy output and download
- function onDownload(jsonData){
-  download(JSON.stringify(jsonData), "output.json", "text/plain");
- }
+//Function to jsonfy output and download
+function onDownload(jsonData){
+download(JSON.stringify(jsonData), "output.json", "text/plain");
+}
 
 // Create an ONNX inference session with WebGL backend.
 // Can be 'cpu', 'wasm' or 'webgl
@@ -42,17 +40,16 @@ async function runExample() {
   //This commented section is for another preprocess steps
     // var img = document.getElementById("image_url")
     
-    // const imgs = new Image();
-    // imgs.onload = function() {
-    //   console.log(this.width + 'x' + this.height);
-    //   imgs.width = this.width;
-    //   imgs.height = this.height;
-    //   //let mat = cv.imread(imgElement);
-    // }
-    // imgs.src = img.value;
-    // console.log(imgs.width)
-
-
+    const img = new Image();
+    img.onload = function() {
+      imgElement = document.getElementById("image_url");
+      console.log(imgElement)
+      img.width = this.width;
+      img.height = this.height;
+    }
+    img.src = document.getElementById("image_url").value;
+    //console.log(img.width + 'x' + img.height);
+    
     // Load image.
     const imageLoader = new ImageLoader(imageSize, imageSize);
     const imageData = await imageLoader.getImageData(document.getElementById("image_url").value);
@@ -62,8 +59,9 @@ async function runExample() {
     const height = imageSize;
 
     start_time = performance.now();
-    const preprocessedData = preprocessYOLO(imageData.data, width, height);
-    console.log([1, width, height, 3])
+    //debugSlice()
+    const preprocessedData = preprocessYOLO(imageData.data, width, height, img);
+    //console.log([1, width, height, 3])
 
     const inputTensor = new ort.Tensor('float32', preprocessedData,  [1, width, height, 3]);
 
@@ -76,7 +74,7 @@ async function runExample() {
     const result = await session.run(feeds);
     
     //Download result to use a python post process
-    onDownload(result)
+    onDownload(result);
 
     //Print performance time
     console.log("Tiempo")
@@ -84,25 +82,61 @@ async function runExample() {
     
   }
 
-  /**
-   * Preprocess raw image data to match YoloV4 requirement.
-   */
-  
-  function preprocessYOLO(data, width, height) {
-    //Create array from images and processed data
-    const dataFromImage = ndarray(new Float32Array(data), [width, height, 4]);
-    const dataProcessed = ndarray(new Float32Array(width * height * 3), [1, height, width, 3]);
+/**
+ * Preprocess raw image data to match YoloV4 requirement.
+ */
+function debugSlice(){
+  const imageResized = ndarray(new Float32Array(5*10*4), [5,10, 4]);
+  ndarray.ops.assigns(imageResized, 1);
+  const imagePadded = ndarray(new Float32Array(10 * 10 * 3), [10, 10, 3]);
+  ndarray.ops.assigns(imagePadded, 0);
+  const dHeight = 2;
+  const dWidth = 0;
+  const newWidth = 10;
+  const newHeight = 5;
+  console.log(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null).shape + " , " + imageResized.hi(null, null,3).shape);
+  console.log(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null));
+  console.log(imageResized.hi(null, null,3));
 
-    //Asigns 128 to null values
-    ndarray.ops.assigns(dataProcessed, 128.0)
-    //ndarray.ops.divseq(dataFromImage, 128.0);
-    
+  ndarray.ops.assign(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null), imageResized.hi(null, null,3));
+
+  console.log(imagePadded);
+
+}
+function preprocessYOLO(data, width, height, img) {
+
+    //width and height = iw, ih
+
+    //Obtaining real values of width and height
+    const realHeight = img.height;
+    const realWidth = img.width;
+
+    //Scaling image
+    const scale = Math.min(height/realHeight,width/realWidth);
+    const newWidth = parseInt(realWidth * scale);
+    const newHeight = parseInt(realHeight * scale);
+
+    //Creating a mat to use cv
+    let mat = cv.imread(img);
+
     //Resize
-    ndarray.ops.assign(dataProcessed.pick(0, null, null, 0), dataFromImage.pick(null, null, 2));
-    ndarray.ops.assign(dataProcessed.pick(0, null, null, 1), dataFromImage.pick(null, null, 1));
-    ndarray.ops.assign(dataProcessed.pick(0, null, null, 2), dataFromImage.pick(null, null, 0));
+    let image_resized = new cv.Mat();
+    let dsize = new cv.Size(newWidth, newHeight);
+    cv.resize(mat, image_resized, dsize, 0, 0, cv.INTER_LINEAR);
 
-    ndarray.ops.divseq(dataProcessed, 255.0);
-    return dataProcessed.data;
+    //Create array from images and processed data
+    const imageResized = ndarray(new Float32Array(image_resized.data), [newHeight,newWidth, 4]);
+    const imagePadded = ndarray(new Float32Array(width * height * 3), [height, width, 3]);
+    
+    //Asigns 128 to make an np.full
+    ndarray.ops.assigns(imagePadded, 128.0);
+    
+    const dWidth = Math.floor((width-newWidth)/2);
+    const dHeight = Math.floor((height-newHeight)/2);
+    
+    ndarray.ops.assign(imagePadded.hi(dHeight+newHeight, dWidth+newWidth,null).lo(dHeight, dWidth, null), imageResized.hi(null, null,3));
+
+    ndarray.ops.divseq(imagePadded, 255.0);
+
+    return imagePadded.data;
   }
- 
