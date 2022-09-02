@@ -40,57 +40,59 @@ async function runExample() {
   //This commented section is for another preprocess steps
     //var img = document.getElementById("image_url")
     
-    const img = new Image();
-    img.onload = function() {
-      imgElement = document.getElementById("image_url");
-      console.log(imgElement)
-      img.width = this.width;
-      img.height = this.height;
-    }
-    img.src = document.getElementById("image_url").value;
-    //console.log(img.width + 'x' + img.height);
+    // const img = new Image();
+    // img.onload = function() {
+    //   imgElement = document.getElementById("image_url");
+    //   console.log(imgElement)
+    //   img.width = this.width;
+    //   img.height = this.height;
+    // }
+    // img.src = document.getElementById("image_url").value;
+    // //console.log(img.width + 'x' + img.height);
     
-    // Load image.
-    const imageLoader = new ImageLoader(imageSize, imageSize);
-    const imageData = await imageLoader.getImageData(document.getElementById("image_url").value);
+    // // Load image.
+    // const imageLoader = new ImageLoader(imageSize, imageSize);
+    // const imageData = await imageLoader.getImageData(document.getElementById("image_url").value);
     
-    // Preprocess the image data to match input dimension requirement, 1x416x416x3
-    const width = imageSize;
-    const height = imageSize;
+    // // Preprocess the image data to match input dimension requirement, 1x416x416x3
+    // const width = imageSize;
+    // const height = imageSize;
 
     
     //debugSlice()
-    const preprocessedData = preprocessYOLO(width, height, img);
+    //const preprocessedData = preprocessYOLO(width, height, img);
 
-    console.log("first", preprocessedData)
+    //console.log("first", preprocessedData)
     //console.log([1, width, height, 3])
 
-    const inputTensor = new ort.Tensor('float32', preprocessedData.data,  [1, width, height, 3]);
+    // const inputTensor = new ort.Tensor('float32', preprocessedData.data,  [1, width, height, 3]);
 
-    console.log(session.inputNames)
-    const input = new String(session.inputNames[0]);
-    const output = new String(session.outputNames[0]);
-    
+    //console.log(session.inputNames)
+    //const input = new String(session.inputNames[0]);
+    //const output = new String(session.outputNames[0]);
+    //const imageArray = await getImagesArray('http://localhost:3000/getImages'+5)
+    //console.log(imageArray);
     //const feeds = {[input] : inputTensor};
-    const arrayImages = await preprocessBatch(imageSize,imageSize,'http://localhost:3000/getImages');
+    //const arrayImages = await preprocessBatch(imageSize,imageSize, imageArray);
 
     //console.log(arrayImages);
 
-    const feeds = {[input] : arrayImages};
-    start_time = performance.now();
+    //const feeds = {[input] : arrayImages};
+    //start_time = performance.now();
     // Run model with Tensor inputs and get the result.
-    const result = await session.run(feeds);
+    console.log("Loading...")
+    //const result = await session.run(feeds);
     
     // //Download result to use a python post process
     // console.log(result);
 
     // console.log(result[output]);
-    onDownload(result,"output.json");
+    //onDownload(result,"output.json");
 
-    //Print performance timeimage.png
-    console.log("Tiempo")
-    console.log(performance.now() - start_time)
-    
+    // //Print performance timeimage.png
+    // console.log("Tiempo")
+    // console.log(performance.now() - start_time)
+    experiments(imageSize,imageSize)
   }
 
 /**
@@ -109,7 +111,7 @@ function preprocessYOLO(width, height, img) {
     const scale = Math.min(height/realHeight,width/realWidth);
     const newWidth = parseInt(realWidth * scale);
     const newHeight = parseInt(realHeight * scale);
-    console.log(scale, newWidth, newHeight, realWidth, realHeight);
+    //console.log(scale, newWidth, newHeight, realWidth, realHeight);
 
     //Creating a mat to use cv
     let mat = cv.imread(img);
@@ -135,10 +137,9 @@ function preprocessYOLO(width, height, img) {
 
     return imagePadded;
   }
-
-  async function preprocessBatch(yoloWidth, yoloHeight, url){
+async function getImagesArray(url){
     
-    const jsonData =await fetch(url)
+    const jsonData = await fetch(url)
     .then(function(response) {
       // The response is a Response instance.
       // You parse the data into a useable format using `.json()`
@@ -155,7 +156,7 @@ function preprocessYOLO(width, height, img) {
         var width = value["shape"][1],
             height = value["shape"][0],
             buffer = new Uint8ClampedArray(width * height * 4);
-        console.log(width,height);
+        //console.log(width,height);
         for(var y = 0; y < height; y++) {
           for(var x = 0; x < width; x++) {
               var pos = (y * width + x) * 4; // position in buffer based on x and y
@@ -193,21 +194,27 @@ function preprocessYOLO(width, height, img) {
           imgA.height = this.height;
           }
           imgA.src = dataUri
-          document.body.appendChild(imgA);
+          //document.body.appendChild(imgA);
         imgArray[k]=imgA;
         imgArrayNames[k]=key; 
         k = k + 1;
       });
+    return imgArray;
+  })
+  return jsonData;
+};
 
-      var countImages = k;
+async function preprocessBatch(yoloWidth, yoloHeight, imgArray){
+      
       k = 0;
-      console.log(countImages);
-      const processArray = ndarray(new Float32Array(countImages*yoloHeight*yoloHeight*3), [countImages, yoloHeight, yoloHeight, 3]);
-      for (let i = 0; i < imgArray.length; i++) {
+      const countImages=imgArray.length
+      //console.log(countImages=imgArray.length);
+      const processArray = ndarray(new Float32Array((countImages)*yoloHeight*yoloHeight*3), [countImages, yoloHeight, yoloHeight, 3]);
+      for (let i = 0; i < countImages; i++) {
         const element = imgArray[i];
-        console.log("Imagen: ",imgArrayNames[k]);
+        //console.log("Imagen: ",imgArrayNames[k]);
         const preprocessedData = preprocessYOLO(yoloWidth, yoloHeight, element);
-        console.log(preprocessedData);
+        //console.log(preprocessedData);
         ndarray.ops.assign(processArray.pick(k,null,null,null), preprocessedData);
       
         // const input = new String(session.inputNames[0]);
@@ -223,13 +230,40 @@ function preprocessYOLO(width, height, img) {
         // onDownload(result,imgArrayNames[k]+".json");
         k = k + 1;
       }
-      console.log(processArray);
+      //console.log(processArray);
       const inputTensor = new ort.Tensor(processArray.data, [k, yoloHeight, yoloHeight, 3]);
 
-      console.log(k,inputTensor);
+      //console.log(k,inputTensor);
       return inputTensor;
-    });
-    //console.log(jsonData);
-    return jsonData;
-  }
+};
+async function experiments(yoloWidth, yoloHeight){
+    const input = new String(session.inputNames[0]);
+    const output = new String(session.outputNames[0]);
+  for (let index = 1; index < 6; index++) {
+    //const feeds = {[input] : inputTensor};
+    console.log("Test "+index);
+    var startTime = performance.now();
+    const imageArray = await getImagesArray('http://localhost:3000/getImages'+index)
+    //console.log(arrayImages);
+    var startTime = performance.now();
+    const arrayImages = await preprocessBatch(imageSize,imageSize, imageArray);
+    const feeds = {[input] : arrayImages};
+    // Run model with Tensor inputs and get the result.
+    const result = await session.run(feeds);
+    
+    // //Download result to use a python post process
+    // console.log(result);
+    //Print performance timeimage.png
+    var finishTime = performance.now() - startTime;
+    console.log("Time total: ");
+    console.log(finishTime);
 
+    console.log("Time per Image: ");
+    console.log(finishTime/index);
+    console.log();
+    // console.log(result[output]);
+    onDownload(result,"test"+index+".json");
+
+    
+  }
+}
