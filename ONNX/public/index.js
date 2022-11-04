@@ -26,22 +26,21 @@ async function imgSet() {
 // Create an ONNX inference session with WebGL backend.
 // Can be 'cpu', 'wasm' or 'webgl
 async function loadModel() {
-  
   //Session options to load
   const sessionOptions = {
-    executionProviders: ['webgl'],
+    executionProviders: ['webgl','wasm','cpu'],
     enableProfiling: true
   };
-  session = await ort.InferenceSession.create("./mobilenetv2-1.0.onnx",sessionOptions);
+  session = await ort.InferenceSession.create("./yolov4.onnx",sessionOptions);
   await imgSet();
 }
 
 //Exececute the program
-async function runExample() {
+async function runExample(imageSize,n_images) {
 
     console.log("Loading...")
-    runSingleModel(imageSize)
-    //runBatchModel(imageSize,imageSize,'http://localhost:3000/getImages',"output.json")
+    //runSingleModel(imageSize)
+    runBatchModel(imageSize,imageSize,'http://localhost:3000/getImages',"output.json")
     //benchmark(imageSize,imageSize, 5)
   }
 
@@ -85,39 +84,6 @@ function preprocessYOLO(width, height, img) {
 
     return imagePadded;
   }
-
-
-
-//Section of run model
-
-//General run of Yolov4 model, recibe a tensor and run it
-async function runOnnxModel(tensor){
-  const input = new String(session.inputNames[0]);
-  const feeds = {[input] : tensor};
-  // Run model with Tensor inputs and get the result.
-  const result = await session.run(feeds);
-  return result;
-}
-
-
-//Run the onnx model from the image loaded in page
-async function runSingleModel(imageSize){
-  const tensor = await getTensorFromImage(imageSize);
-  const result = await runOnnxModel(tensor)
-  onDownload(result,"output.json");
-}
-
-//Run the model obtaining a batch or an image from an url
-async function runBatchModel(yoloWidth, yoloHeight, url, fileName){
-  const imageArray = await getImagesArray(url)
-  
-  var startTime = performance.now();
-  const tensorImages = await getTensorFromBatch(yoloWidth,yoloHeight, imageArray);
-  const result = await runOnnxModel(tensorImages)
-  var finishTime = performance.now() - startTime;
-  return finishTime;
-  //onDownload(result,fileName);
-}
 
 
 //Section of tensors
@@ -264,5 +230,36 @@ async function benchmark(yoloWidth, yoloHeight, repetitions){
     }
   }
   console.log(timesJson);
-  onDownload(timesJson, "timesMozilla.json");
+  onDownload(timesJson, "timesChromeParallel.json");
+}
+
+//Section of run model
+
+//General run of Yolov4 model, recibe a tensor and run it
+async function runOnnxModel(tensor){
+  const input = new String(session.inputNames[0]);
+  const feeds = {[input] : tensor};
+  // Run model with Tensor inputs and get the result.
+  const result = await session.run(feeds);
+  return result;
+}
+
+
+//Run the onnx model from the image loaded in page
+async function runSingleModel(imageSize){
+  const tensor = await getTensorFromImage(imageSize);
+  const result = await runOnnxModel(tensor)
+  onDownload(result,"output.json");
+}
+
+//Run the model obtaining a batch or an image from an url
+async function runBatchModel(yoloWidth, yoloHeight, url, fileName){
+  const imageArray = await getImagesArray(url)
+  
+  var startTime = performance.now();
+  const tensorImages = await getTensorFromBatch(yoloWidth,yoloHeight, imageArray);
+  const result = await runOnnxModel(tensorImages)
+  var finishTime = performance.now() - startTime;
+  return finishTime;
+  //onDownload(result,fileName);
 }
