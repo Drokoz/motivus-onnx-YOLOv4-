@@ -40,8 +40,8 @@ async function runExample(imageSize,n_images) {
 
     console.log("Loading...")
     //runSingleModel(imageSize)
-    runBatchModel(imageSize,imageSize,'http://localhost:3000/getImages',"output.json")
-    //benchmark(imageSize,imageSize, 5)
+    //runBatchModel(imageSize,imageSize,'http://localhost:3000/getImages',"output.json")
+    benchmark(imageSize,imageSize, 5)
   }
 
 
