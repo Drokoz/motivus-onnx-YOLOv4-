@@ -39,9 +39,9 @@ async function loadModel() {
 async function runExample(imageSize,n_images) {
 
     console.log("Loading...")
-    //runSingleModel(imageSize)
+    runSingleModel(imageSize)
     //runBatchModel(imageSize,imageSize,'http://localhost:3000/getImages',"output.json")
-    benchmark(imageSize,imageSize, 5)
+    //benchmark(imageSize,imageSize, 5)
   }
 
 
@@ -58,7 +58,7 @@ function preprocessYOLO(width, height, img) {
     const scale = Math.min(height/realHeight,width/realWidth);
     const newWidth = parseInt(realWidth * scale);
     const newHeight = parseInt(realHeight * scale);
-    //console.log(scale, newWidth, newHeight, realWidth, realHeight);
+    console.log(scale, newWidth, newHeight, realWidth, realHeight);
 
     //Creating a mat to use cv
     let mat = cv.imread(img);
@@ -106,6 +106,9 @@ async function getTensorFromImage(imageSize){
     const width = imageSize;
     const height = imageSize;
 
+    //debug prints
+    console.log(img);
+    console.log(width,height)
     const preprocessedData = preprocessYOLO(width, height, img);
 
     const inputTensor = new ort.Tensor('float32', preprocessedData.data,  [1, width, height, 3]);
