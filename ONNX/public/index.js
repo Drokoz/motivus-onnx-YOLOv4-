@@ -61,6 +61,8 @@ async function runExample() {
 
   console.log("Loading...");
   await loadModel(modelName, backendValue);
+
+  console.log("Entering mode: ", modeName);
   switch (modeName) {
     case "batch":
       console.log("Running batch mode");

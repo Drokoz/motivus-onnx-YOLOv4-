@@ -18,13 +18,6 @@ async function getTensorFromImage(imageSize, arrayExpected, modelName) {
   const width = imageSize;
   const height = imageSize;
 
-  //debug prints
-  //   console.log(img);
-  //   console.log(width, height);
-
-  //   console.log(modelName);
-  //   console.log(preprocess);
-  //   console.log(preprocess[modelName]);
   const preprocessedData = preprocess[modelName](width, height, img);
 
   const inputTensor = new ort.Tensor(
@@ -126,11 +119,8 @@ const preprocess = {
 
     return imagePadded;
   },
-  //Preprocess raw image data to match Resnet requirement.
+  //Preprocess raw image data to match Resnet requirement. (N x 3 x H x W),
   resnet: function preprocessResnet(width, height, img) {
-    let mean_vec = ndarray(new Float64Array([0.485, 0.456, 0.406]));
-    let stddev_vec = ndarray(new Float64Array([0.229, 0.224, 0.225]));
-
     let mat = cv.imread(img);
 
     //Resize
@@ -139,48 +129,38 @@ const preprocess = {
     cv.resize(mat, image_resized, dsize, 0, 0, cv.INTER_LINEAR);
 
     //console.log("checking");
-
     //Create array from images and processed data
-    const arrayExpected = [4, height, width];
-    const imageResized = ndarray(
+    const arrayExpected = [height, width, 4];
+
+    const arrayExpected2 = [3, height, width];
+
+    const dataFromImage = ndarray(
       new Float32Array(image_resized.data),
       arrayExpected
     );
-
-    const arrayExpected2 = [3, height, width];
-    const imagePadded = ndarray(
+    const dataProcessed = ndarray(
       new Float32Array(width * height * 3),
       arrayExpected2
     );
 
-    //console.log(imageResized);
+    // Normalize 0-255 to (-1)-1
+    ndarray.ops.divseq(dataFromImage, 128.0);
+    ndarray.ops.subseq(dataFromImage, 1.0);
 
-    // console.log("Test");
-    ndarray.ops.divseq(imageResized, 255.0);
-    //console.log(imageResized);
-
-    for (let i = 0; i < 3; i++) {
-      imageResized[0];
-    }
+    // Realign imageData from [224*224*4] to the correct dimension [1*3*224*224].
     ndarray.ops.assign(
-      imagePadded.hi(null, null, null).lo(null, null, null),
-      imageResized.hi(3, null, null)
+      dataProcessed.pick(0, null, null),
+      dataFromImage.pick(null, null, 2)
     );
-    //console.log(imagePadded);
+    ndarray.ops.assign(
+      dataProcessed.pick(1, null, null),
+      dataFromImage.pick(null, null, 1)
+    );
+    ndarray.ops.assign(
+      dataProcessed.pick(2, null, null),
+      dataFromImage.pick(null, null, 0)
+    );
 
-    // //Debug prints
-    // console.log("Values");
-    // console.log(mean_vec);
-    // console.log(stddev_vec);
-
-    // console.log("Rez vectors shape");
-    // console.log(imageResized.shape);
-    // console.log(imageResized);
-
-    // console.log("Nor vectors shape");
-    // console.log(mean_vec.shape);
-    // console.log(stddev_vec.shape);
-
-    return imagePadded;
+    return dataProcessed;
   }
 };

@@ -49,9 +49,9 @@ async function runBatchModel(
   var finishTime2 = performance.now() - startTime2;
   //console.log("Tiempo procesado en ejecución modelo: ", finishTime2);
   var finishTime = performance.now() - startTime;
-  //console.log("Tiempo procesado total: ", finishTime);
+  console.log("Tiempo procesado total: ", finishTime);
   return finishTime;
-  //onDownload(result,fileName);
+  onDownload(result, fileName);
 }
 
 //Run a benchmark of repetition with up to 5 images in batch

@@ -7,25 +7,26 @@ const mode = args[1];
 const backend = args[2];
 
 (async () => {
-  const browser = await playwright.chromium.launch({
-    headless: true,
-    args: [
-      "--disable-extensions",
-      "--disable-infobars",
-      "--disable-web-security",
-      "--disable-features=WebGLDraftExtensions",
-      "--disable-features=WebGL2ComputeRenderingContext"
-    ]
-  });
+  const browser = await playwright.chromium.launch();
+  // const browser = await playwright.chromium.launch({
+  //   headless: true,
+  //   args: [
+  //     "--disable-extensions",
+  //     "--disable-infobars",
+  //     "--disable-web-security",
+  //     "--disable-features=WebGLDraftExtensions",
+  //     "--disable-features=WebGL2ComputeRenderingContext"
+  //   ]
+  // });
   const page = await browser.newPage();
-  await page.goto("https://get.webgl.org/");
-  const result = await page.evaluate(() => {
-    return (
-      !!document.querySelector("#feedback") &&
-      document.querySelector("#feedback").textContent.indexOf("Success") >= 0
-    );
-  });
-  console.log("WebGL support:", result);
+  // await page.goto("https://get.webgl.org/");
+  // const result = await page.evaluate(() => {
+  //   return (
+  //     !!document.querySelector("#feedback") &&
+  //     document.querySelector("#feedback").textContent.indexOf("Success") >= 0
+  //   );
+  // });
+  // console.log("WebGL support:", result);
 
   await page.goto("http://localhost:3000/");
 
@@ -45,11 +46,16 @@ const backend = args[2];
   predictions = await page.locator("#predictions");
   messages = await page.locator("#messages");
 
+  console.log("Seleccionando");
   await load_button.click();
   await model_select.selectOption(model);
-  await mode_select.selectOption(mode);
+  if (mode !== "single") {
+    await mode_select.selectOption(mode);
+  }
   await backend_select.selectOption(backend);
+  console.log("Running");
   await run_button.click();
 
+  console.log("Finishing");
   await browser.close();
 })();
